@@ -1,5 +1,7 @@
 require('dotenv').config(); // Load environment variables
 
+console.log("Token loaded:", process.env.TOKEN); // DEBUG LINE
+
 const { 
   Client, 
   GatewayIntentBits, 
