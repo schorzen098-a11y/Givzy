@@ -92,18 +92,18 @@ client.on(Events.InteractionCreate, async interaction => {
 
     if (interaction.isButton() && interaction.customId === 'join_giveaway') {
       const giveaway = giveaways.get(interaction.message.id);
-      if (!giveaway) return interaction.reply({ content: 'This giveaway no longer exists.', flags: 64 });
+      if (!giveaway) return interaction.reply({ content: 'This giveaway no longer exists.', ephemeral: true });
 
       if (giveaway.role && !interaction.member.roles.cache.has(giveaway.role)) {
-        return interaction.reply({ content: 'You do not have the required role.', flags: 64 });
+        return interaction.reply({ content: 'You do not have the required role.', ephemeral: true });
       }
 
       if (giveaway.participants.has(interaction.user.id)) {
-        return interaction.reply({ content: '❗ You already joined this giveaway.', flags: 64 });
+        return interaction.reply({ content: '❗ You already joined this giveaway.', ephemeral: true });
       }
 
       giveaway.participants.add(interaction.user.id);
-      interaction.reply({ content: '✅ You joined the giveaway!', flags: 64 });
+      interaction.reply({ content: '✅ You joined the giveaway!', ephemeral: true });
     }
   } catch (err) {
     console.error("❌ Interaction error:", err);
@@ -121,7 +121,7 @@ function endGiveaway(messageId) {
   } else {
     const shuffled = participantsArray.sort(() => 0.5 - Math.random());
     const winners = shuffled.slice(0, giveaway.winners).map(id => `<@${id}>`);
-    announceWinners(giveaway.channelId, giveaway.messageId, `🎉 ${winners.join(', ')}`, giveaway.prize);
+    announceWinners(giveaway.channelId, giveaway.messageId, `${winners.join(', ')}`, giveaway.prize);
   }
 
   giveaways.delete(messageId);
@@ -151,11 +151,11 @@ async function announceWinners(channelId, messageId, resultText, prize) {
 
 function rerollGiveaway(messageId, interaction) {
   const giveaway = giveaways.get(messageId);
-  if (!giveaway) return interaction.reply({ content: 'Giveaway not found or already ended.', flags: 64 });
+  if (!giveaway) return interaction.reply({ content: 'Giveaway not found or already ended.', ephemeral: true });
 
   const participantsArray = [...giveaway.participants];
   if (participantsArray.length < giveaway.winners) {
-    return interaction.reply({ content: 'Not enough participants to reroll.', flags: 64 });
+    return interaction.reply({ content: 'Not enough participants to reroll.', ephemeral: true });
   }
 
   const shuffled = participantsArray.sort(() => 0.5 - Math.random());
@@ -167,9 +167,9 @@ function rerollGiveaway(messageId, interaction) {
 function cancelGiveaway(messageId, interaction) {
   if (giveaways.has(messageId)) {
     giveaways.delete(messageId);
-    interaction.reply({ content: '🚫 Giveaway has been cancelled.', flags: 64 });
+    interaction.reply({ content: '🚫 Giveaway has been cancelled.', ephemeral: true });
   } else {
-    interaction.reply({ content: 'Giveaway not found.', flags: 64 });
+    interaction.reply({ content: 'Giveaway not found.', ephemeral: true });
   }
 }
 
