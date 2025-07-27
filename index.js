@@ -22,14 +22,21 @@ const token = process.env.TOKEN;
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
   partials: [Partials.Message, Partials.Channel, Partials.Reaction],
-});
-
-client.once(Events.ClientReady, () => {
-  console.log(`Logged in as ${client.user.tag}`);
-  client.user.setActivity("Developed By Schorzen", { type: 0 });
+  allowedMentions: { parse: ['roles'] },
 });
 
 const giveaways = new Collection(); // In-memory storage
+
+client.once(Events.ClientReady, () => {
+  console.log(`✅ Logged in as ${client.user.tag}`);
+
+  client.user.setPresence({
+    activities: [{ name: 'Developed by Schorzen', type: 0 }],
+    status: 'online',
+  });
+
+  console.log('🟢 Bot is ready with presence.');
+});
 
 client.on(Events.InteractionCreate, async interaction => {
   if (interaction.isChatInputCommand()) {
@@ -54,7 +61,12 @@ client.on(Events.InteractionCreate, async interaction => {
         .setStyle(ButtonStyle.Primary);
 
       const row = new ActionRowBuilder().addComponents(joinBtn);
-      const msg = await interaction.reply({ embeds: [embed], components: [row], fetchReply: true, allowedMentions: { parse: ['roles'] } });
+      const msg = await interaction.reply({ 
+        embeds: [embed], 
+        components: [row], 
+        fetchReply: true, 
+        allowedMentions: { parse: ['roles'] }
+      });
 
       giveaways.set(msg.id, {
         prize,
@@ -67,7 +79,17 @@ client.on(Events.InteractionCreate, async interaction => {
         channelId: msg.channel.id,
       });
 
-      setTimeout(() => endGiveaway(msg.id), ms(duration));
+      // LOG + END AFTER DURATION
+      console.log(`⏳ Giveaway started (${msg.id}) and will end in ${ms(duration)}ms`);
+
+      setTimeout(() => {
+        console.log(`⏰ Timer ended for giveaway ID: ${msg.id}`);
+        try {
+          endGiveaway(msg.id);
+        } catch (err) {
+          console.error('❌ Failed to end giveaway:', err);
+        }
+      }, ms(duration));
     }
 
     if (commandName === 'reroll') {
@@ -96,13 +118,16 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 });
 
+// === FUNCTIONS ===
+
 function endGiveaway(messageId) {
+  console.log(`📦 Ending giveaway for ID: ${messageId}`);
   const giveaway = giveaways.get(messageId);
   if (!giveaway) return;
 
   const participantsArray = [...giveaway.participants];
   if (participantsArray.length < giveaway.winners) {
-    announceWinners(giveaway.channelId, giveaway.messageId, 'Not enough participants to pick winners.');
+    announceWinners(giveaway.channelId, giveaway.messageId, '⚠️ Not enough participants to pick winners.');
   } else {
     const shuffled = participantsArray.sort(() => 0.5 - Math.random());
     const winners = shuffled.slice(0, giveaway.winners).map(id => `<@${id}>`);
@@ -118,8 +143,17 @@ async function announceWinners(channelId, messageId, resultText) {
   const embed = EmbedBuilder.from(msg.embeds[0])
     .setFooter({ text: resultText })
     .setColor('Green');
-  await msg.edit({ embeds: [embed], components: [] });
-  channel.send({ content: resultText, allowedMentions: { parse: ['roles'] } });
+
+  await msg.edit({ 
+    embeds: [embed], 
+    components: [], 
+    allowedMentions: { parse: ['roles'] } 
+  });
+
+  channel.send({ 
+    content: resultText, 
+    allowedMentions: { parse: ['roles'] } 
+  });
 }
 
 function rerollGiveaway(messageId, interaction) {
