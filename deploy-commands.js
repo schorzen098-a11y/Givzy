@@ -1,46 +1,65 @@
-// deploy-commands.js
-require('dotenv').config();
 const { REST, Routes, SlashCommandBuilder } = require('discord.js');
+require('dotenv').config();
+
+const { TOKEN, CLIENT_ID, GUILD_ID } = process.env;
 
 const commands = [
   new SlashCommandBuilder()
     .setName('giveaway')
     .setDescription('Start a giveaway!')
     .addStringOption(opt =>
-      opt.setName('prize').setDescription('Giveaway prize').setRequired(true))
+      opt.setName('prize')
+        .setDescription('Giveaway prize')
+        .setRequired(true)
+    )
     .addStringOption(opt =>
-      opt.setName('duration').setDescription('Duration (e.g., 10m, 1h)').setRequired(true))
+      opt.setName('duration')
+        .setDescription('Duration (e.g., 10m, 1h, 2d)')
+        .setRequired(true)
+    )
     .addIntegerOption(opt =>
-      opt.setName('winners').setDescription('Number of winners').setRequired(true))
+      opt.setName('winners')
+        .setDescription('Number of winners')
+        .setRequired(true)
+    )
     .addRoleOption(opt =>
-      opt.setName('role').setDescription('Optional role requirement')),
+      opt.setName('role')
+        .setDescription('Optional role requirement')
+        .setRequired(false)
+    ),
 
   new SlashCommandBuilder()
     .setName('reroll')
     .setDescription('Reroll a giveaway')
     .addStringOption(opt =>
-      opt.setName('message_id').setDescription('Message ID').setRequired(true)),
+      opt.setName('message_id')
+        .setDescription('The message ID of the giveaway to reroll')
+        .setRequired(true)
+    ),
 
   new SlashCommandBuilder()
     .setName('cancel')
-    .setDescription('Cancel a giveaway')
+    .setDescription('Cancel an ongoing giveaway')
     .addStringOption(opt =>
-      opt.setName('message_id').setDescription('Message ID').setRequired(true))
-].map(cmd => cmd.toJSON());
+      opt.setName('message_id')
+        .setDescription('The message ID of the giveaway to cancel')
+        .setRequired(true)
+    )
+].map(command => command.toJSON());
 
-const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+const rest = new REST({ version: '10' }).setToken(TOKEN);
 
 (async () => {
   try {
-    console.log('🔁 Deploying slash commands...');
+    console.log('🚀 Deploying slash commands...');
 
     await rest.put(
-      Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
+      Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
       { body: commands }
     );
 
-    console.log('✅ Commands deployed successfully!');
+    console.log('✅ Slash commands deployed successfully!');
   } catch (error) {
-    console.error('❌ Error deploying commands:', error);
+    console.error('❌ Failed to deploy commands:', error);
   }
 })();
