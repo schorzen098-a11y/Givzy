@@ -1,5 +1,6 @@
 require('dotenv').config(); // Load environment variables
-console.log("Token loaded:", process.env.TOKEN); // Debug log
+
+console.log("Token loaded:", process.env.TOKEN); // DEBUG LINE
 
 const {
   Client,
@@ -27,10 +28,8 @@ const giveaways = new Collection(); // In-memory storage
 
 client.once(Events.ClientReady, () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
-
-  // Set presence
   client.user.setPresence({
-    activities: [{ name: 'Developed By Schorzen', type: 0 }],
+    activities: [{ name: 'Developed by Schorzen' }],
     status: 'online',
   });
 });
@@ -46,7 +45,6 @@ client.on(Events.InteractionCreate, async interaction => {
       const role = interaction.options.getRole('role');
 
       const endTime = Date.now() + ms(duration);
-
       const embed = new EmbedBuilder()
         .setTitle('🎉 Giveaway!')
         .setDescription(`**Prize:** ${prize}\n**Hosted by:** ${interaction.user}\n**Ends in:** <t:${Math.floor(endTime / 1000)}:R>\n${role ? `**Role required:** ${role}` : ''}`)
@@ -77,11 +75,10 @@ client.on(Events.InteractionCreate, async interaction => {
         channelId: msg.channel.id,
       });
 
-      console.log(`🎁 Giveaway started: ${msg.id}, ends in ${duration}`);
+      console.log(`⏳ Giveaway started in ${interaction.guild.name} for prize: ${prize}`);
 
-      setTimeout(() => {
-        endGiveaway(msg.id).catch(console.error);
-      }, ms(duration));
+      // End the giveaway after the duration
+      setTimeout(() => endGiveaway(msg.id), ms(duration));
     }
 
     if (commandName === 'reroll') {
@@ -95,87 +92,85 @@ client.on(Events.InteractionCreate, async interaction => {
     }
   }
 
-  if (interaction.isButton() && interaction.customId === 'join_giveaway') {
-    const giveaway = giveaways.get(interaction.message.id);
-    if (!giveaway) {
-      return interaction.reply({ content: '❌ This giveaway no longer exists.', ephemeral: true });
+  if (interaction.isButton()) {
+    if (interaction.customId === 'join_giveaway') {
+      const giveaway = giveaways.get(interaction.message.id);
+      if (!giveaway) return interaction.reply({ content: 'This giveaway no longer exists.', ephemeral: true });
+
+      if (giveaway.role && !interaction.member.roles.cache.has(giveaway.role)) {
+        return interaction.reply({ content: 'You do not have the required role.', ephemeral: true });
+      }
+
+      if (giveaway.participants.has(interaction.user.id)) {
+        return interaction.reply({ content: 'You have already joined this giveaway!', ephemeral: true });
+      }
+
+      giveaway.participants.add(interaction.user.id);
+      interaction.reply({ content: 'You joined the giveaway!', ephemeral: true });
     }
-
-    if (giveaway.role && !interaction.member.roles.cache.has(giveaway.role)) {
-      return interaction.reply({ content: '🚫 You do not have the required role to join this giveaway.', ephemeral: true });
-    }
-
-    if (giveaway.participants.has(interaction.user.id)) {
-      return interaction.reply({ content: '⚠️ You already joined this giveaway!', ephemeral: true });
-    }
-
-    giveaway.participants.add(interaction.user.id);
-    interaction.reply({ content: '✅ You successfully joined the giveaway!', ephemeral: true });
-
-    console.log(`User ${interaction.user.tag} joined giveaway ${interaction.message.id}`);
   }
 });
 
-// === Giveaway logic ===
-async function endGiveaway(messageId) {
+// Functions
+function endGiveaway(messageId) {
   const giveaway = giveaways.get(messageId);
   if (!giveaway) return;
 
   const participantsArray = [...giveaway.participants];
-  const channel = await client.channels.fetch(giveaway.channelId);
-  const msg = await channel.messages.fetch(messageId);
+  const channelId = giveaway.channelId;
+  const prize = giveaway.prize;
 
   if (participantsArray.length < giveaway.winners) {
-    await announceWinners(channel, msg, '❌ Not enough participants to pick winners.');
+    announceWinners(channelId, messageId, 'Not enough participants to pick winners.', prize);
   } else {
     const shuffled = participantsArray.sort(() => 0.5 - Math.random());
     const winners = shuffled.slice(0, giveaway.winners).map(id => `<@${id}>`);
-    await announceWinners(channel, msg, `🎉 Winners: ${winners.join(', ')}`);
+    const winnerText = winners.join(', ');
+    announceWinners(channelId, messageId, winnerText, prize);
   }
 
   giveaways.delete(messageId);
-  console.log(`🎉 Giveaway ended: ${messageId}`);
+  console.log(`🏁 Giveaway ended for prize: ${prize}`);
 }
 
-async function announceWinners(channel, msg, resultText) {
+async function announceWinners(channelId, messageId, resultText, prize) {
+  const channel = await client.channels.fetch(channelId);
+  const msg = await channel.messages.fetch(messageId);
   const embed = EmbedBuilder.from(msg.embeds[0])
     .setFooter({ text: resultText })
     .setColor('Green');
 
   await msg.edit({ embeds: [embed], components: [] });
 
-  channel.send({
-    content: resultText,
-    allowedMentions: { parse: ['roles', 'users'] },
+  await channel.send({
+    content: `🎉 **Congratulations!** ${resultText} for winning **${prize}**!`,
+    allowedMentions: { parse: ['users', 'roles'] },
   });
 }
 
 function rerollGiveaway(messageId, interaction) {
   const giveaway = giveaways.get(messageId);
-  if (!giveaway) {
-    return interaction.reply({ content: '❌ Giveaway not found or already ended.', ephemeral: true });
-  }
+  if (!giveaway) return interaction.reply({ content: 'Giveaway not found or already ended.', ephemeral: true });
 
   const participantsArray = [...giveaway.participants];
   if (participantsArray.length < giveaway.winners) {
-    return interaction.reply({ content: '⚠️ Not enough participants to reroll.', ephemeral: true });
+    return interaction.reply({ content: 'Not enough participants to reroll.', ephemeral: true });
   }
 
   const shuffled = participantsArray.sort(() => 0.5 - Math.random());
   const winners = shuffled.slice(0, giveaway.winners).map(id => `<@${id}>`);
 
-  interaction.reply({ content: `🔁 New Winners: ${winners.join(', ')}` });
+  interaction.reply({ content: `🎉 New Winners: ${winners.join(', ')}` });
 }
 
 function cancelGiveaway(messageId, interaction) {
   if (giveaways.has(messageId)) {
     giveaways.delete(messageId);
-    interaction.reply({ content: '❌ Giveaway has been cancelled.', ephemeral: true });
+    interaction.reply({ content: 'Giveaway has been cancelled.', ephemeral: true });
   } else {
-    interaction.reply({ content: '❌ Giveaway not found.', ephemeral: true });
+    interaction.reply({ content: 'Giveaway not found.', ephemeral: true });
   }
 }
 
-// === Start Bot ===
 keepAlive();
 client.login(token);
