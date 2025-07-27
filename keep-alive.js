@@ -1,18 +1,12 @@
-{
-  "name": "givzy",
-  "version": "1.0.0",
-  "description": "Discord giveaway bot",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
-  "dependencies": {
-    "discord.js": "^14.11.0",
-    "ms": "^2.1.3",
-    "express": "^4.18.2",
-    "dotenv": "^16.3.1"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  }
-}
+// keep-alive.js
+const express = require('express');
+const app = express();
+
+app.get('/', (req, res) => {
+  res.send('Bot is alive!');
+});
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Keep-alive server running on port ${port}`);
+});
