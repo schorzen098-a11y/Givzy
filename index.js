@@ -24,12 +24,12 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
 
-const giveaways = new Collection(); // In-memory storage
-
 client.once(Events.ClientReady, () => {
   console.log(`Logged in as ${client.user.tag}`);
-  client.user.setActivity('Developed By Schorzen', { type: 'PLAYING' });
+  client.user.setActivity("Developed By Schorzen", { type: 0 });
 });
+
+const giveaways = new Collection(); // In-memory storage
 
 client.on(Events.InteractionCreate, async interaction => {
   if (interaction.isChatInputCommand()) {
@@ -67,7 +67,6 @@ client.on(Events.InteractionCreate, async interaction => {
         channelId: msg.channel.id,
       });
 
-      // End the giveaway after the duration
       setTimeout(() => endGiveaway(msg.id), ms(duration));
     }
 
@@ -97,7 +96,6 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 });
 
-// Functions
 function endGiveaway(messageId) {
   const giveaway = giveaways.get(messageId);
   if (!giveaway) return;
