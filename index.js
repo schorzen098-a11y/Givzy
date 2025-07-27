@@ -1,7 +1,21 @@
-const { Client, GatewayIntentBits, Partials, Events, ButtonBuilder, ButtonStyle, ActionRowBuilder, EmbedBuilder, Collection } = require('discord.js');
-const { token } = require('./config.json');
+require('dotenv').config(); // Load environment variables
+
+const { 
+  Client, 
+  GatewayIntentBits, 
+  Partials, 
+  Events, 
+  ButtonBuilder, 
+  ButtonStyle, 
+  ActionRowBuilder, 
+  EmbedBuilder, 
+  Collection 
+} = require('discord.js');
+
 const keepAlive = require('./keep-alive');
 const ms = require('ms');
+
+const token = process.env.TOKEN;
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
