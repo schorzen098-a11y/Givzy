@@ -28,6 +28,7 @@ const giveaways = new Collection(); // In-memory storage
 
 client.once(Events.ClientReady, () => {
   console.log(`Logged in as ${client.user.tag}`);
+  client.user.setActivity('Developed By Schorzen', { type: 'PLAYING' });
 });
 
 client.on(Events.InteractionCreate, async interaction => {
@@ -53,7 +54,7 @@ client.on(Events.InteractionCreate, async interaction => {
         .setStyle(ButtonStyle.Primary);
 
       const row = new ActionRowBuilder().addComponents(joinBtn);
-      const msg = await interaction.reply({ embeds: [embed], components: [row], fetchReply: true });
+      const msg = await interaction.reply({ embeds: [embed], components: [row], fetchReply: true, allowedMentions: { parse: ['roles'] } });
 
       giveaways.set(msg.id, {
         prize,
@@ -120,7 +121,7 @@ async function announceWinners(channelId, messageId, resultText) {
     .setFooter({ text: resultText })
     .setColor('Green');
   await msg.edit({ embeds: [embed], components: [] });
-  channel.send(resultText);
+  channel.send({ content: resultText, allowedMentions: { parse: ['roles'] } });
 }
 
 function rerollGiveaway(messageId, interaction) {
